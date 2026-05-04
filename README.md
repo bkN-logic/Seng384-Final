@@ -17,22 +17,91 @@ Project Bridge is a lightweight full-stack collaboration site for professionals 
 
 ## Run it
 
+There are no npm package dependencies—only Node.js is required for local runs. Use **Node 18+** (the Docker image uses Node 22).
+
+### Local (Node)
+
+From the repo root:
+
 ```bash
 npm start
 ```
 
-Then open `http://localhost:3000`.
+Equivalent:
+
+```bash
+npm run dev
+```
+
+The server listens on port **3000** by default. Override if needed (example uses `8080`):
+
+```bash
+PORT=8080 npm start
+```
+
+Open [http://localhost:3000](http://localhost:3000), or `http://localhost:$PORT` when using a custom port.
+
+### Docker
+
+Requires [Docker](https://docs.docker.com/get-docker/) and Docker Compose v2.
+
+**Start** (build image, run in background, map host `3000` → container `3000`):
+
+```bash
+npm run docker:up
+```
+
+Or explicitly:
+
+```bash
+docker compose up --build -d
+```
+
+If **port 3000 is already in use** on your machine, set `HOST_PORT` to any free port:
+
+```bash
+HOST_PORT=3080 docker compose up --build -d
+```
+
+Then open `http://localhost:3080` (or whatever you set).
+
+Data is persisted via a bind mount: the container uses `./data` on your host (same as local `npm start`).
+
+**Logs** (follow `web` service):
+
+```bash
+npm run docker:logs
+```
+
+**Stop** and remove the stack:
+
+```bash
+npm run docker:down
+```
+
+**Build image only** (optional):
+
+```bash
+npm run docker:build
+```
 
 ## Project structure
 
 ```text
 .
+├── api/index.js          # Vercel serverless entry
 ├── data/db.json
 ├── lib/store.js
-├── public/app.js
-├── public/index.html
-├── public/styles.css
+├── public/
+│   ├── app.js
+│   ├── index.html
+│   ├── styles.css
+│   └── dna-hero.png
 ├── server.js
+├── vercel.json
+├── Dockerfile
+├── docker-compose.yml
+├── .dockerignore
 └── package.json
 ```
 
