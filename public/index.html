@@ -12,178 +12,186 @@
   </head>
   <body data-theme="neon">
     <section id="authScreen" class="auth-shell">
+      <!-- DNA Helix Canvas Background -->
+      <canvas id="dnaCanvas" role="img" aria-label="Animated DNA double helix background"></canvas>
+
+      <!-- Login Page -->
       <div id="loginAuthPage" class="auth-page is-active" data-auth-page="login">
         <div class="auth-stage">
-          <section class="auth-story auth-story-login panel">
-            <p class="eyebrow">Project Bridge Access</p>
-            <h1>Step into a collaboration platform designed for ambitious people who build better together.</h1>
-            <p class="auth-text">
-              Join a high-trust workspace where ideas, expertise, and focused conversations stay connected from the first message to the next concrete move.
-            </p>
+          <section class="auth-brand-section">
+            <div class="auth-brand-content">
+              <p class="eyebrow">Project Bridge</p>
+              <h1>Step into a collaboration platform designed for ambitious people.</h1>
+              <p class="auth-text">
+                Join a high-trust workspace where ideas, expertise, and focused conversations stay connected from the first message to the next concrete move.
+              </p>
 
-            <div class="auth-highlight-grid">
-              <article class="auth-highlight">
-                <p class="eyebrow">Structured discovery</p>
-                <strong>Find promising projects without relying on coincidence.</strong>
-                <p class="section-note">See live opportunities, shared goals, and exactly where your perspective can help.</p>
-              </article>
-
-              <article class="auth-highlight">
-                <p class="eyebrow">Focused contact</p>
-                <strong>Keep each conversation attached to a real opportunity.</strong>
-                <p class="section-note">No lost context, no vague messages, and no confusion about what comes next.</p>
-              </article>
-            </div>
-
-            <div class="auth-demo-card">
-              <p class="eyebrow">Demo access</p>
-              <h2>Try the live workspace immediately.</h2>
-              <p class="section-note">Use the sample account below if you want to explore the product before creating your own membership.</p>
-              <div class="auth-demo-meta">
-                <div class="auth-demo-item">
-                  <span>Email</span>
-                  <strong>selin@projectbridge.demo</strong>
-                </div>
-                <div class="auth-demo-item">
-                  <span>Password</span>
-                  <strong>bridge123</strong>
-                </div>
+              <div class="auth-feature-pills">
+                <span class="auth-feature-pill">
+                  <span class="auth-feature-icon" aria-hidden="true">◆</span>
+                  Structured discovery
+                </span>
+                <span class="auth-feature-pill">
+                  <span class="auth-feature-icon" aria-hidden="true">◆</span>
+                  Focused contact
+                </span>
+                <span class="auth-feature-pill">
+                  <span class="auth-feature-icon" aria-hidden="true">◆</span>
+                  Cross-discipline matching
+                </span>
               </div>
             </div>
           </section>
 
-          <section class="auth-panel panel">
-            <div class="auth-panel-header">
-              <p class="eyebrow">Login</p>
-              <h2>Enter the platform.</h2>
-              <p class="section-note">Use your email as the username when signing in.</p>
+          <section class="auth-panel auth-glass-panel">
+            <div class="auth-panel-inner">
+              <div class="auth-panel-header">
+                <p class="eyebrow">Welcome back</p>
+                <h2>Sign In</h2>
+                <p class="section-note">Use your email to enter the workspace.</p>
+              </div>
+
+              <div id="authNoticeLogin" class="auth-notice" aria-live="polite"></div>
+
+              <form id="loginForm" class="auth-form">
+                <label>
+                  <span>Username</span>
+                  <input name="email" type="email" placeholder="yourname@gmail.com" autocomplete="username" aria-required="true" required />
+                </label>
+
+                <label>
+                  <span>Password</span>
+                  <input name="password" type="password" placeholder="Enter your password" autocomplete="current-password" aria-required="true" required />
+                </label>
+
+                <button class="button button-primary auth-submit" type="submit" id="loginSubmitBtn">
+                  <span>Sign In</span>
+                  <svg class="auth-btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </button>
+
+                <p class="auth-helper">
+                  New here?
+                  <button class="auth-inline-button" type="button" data-auth-view="register">Create your membership</button>
+                </p>
+              </form>
+
+              <div class="auth-demo-card">
+                <div class="auth-demo-card-header">
+                  <span class="auth-demo-badge">Demo</span>
+                  <p class="auth-demo-title">Try the live workspace instantly</p>
+                </div>
+                <div class="auth-demo-meta">
+                  <div class="auth-demo-item">
+                    <span>Email</span>
+                    <strong>selin@projectbridge.demo</strong>
+                  </div>
+                  <div class="auth-demo-item">
+                    <span>Password</span>
+                    <strong>bridge123</strong>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div id="authNoticeLogin" class="auth-notice" aria-live="polite"></div>
-
-            <form id="loginForm" class="auth-form">
-              <label>
-                <span>Username</span>
-                <input name="email" type="email" placeholder="yourname@gmail.com" autocomplete="username" required />
-              </label>
-
-              <label>
-                <span>Password</span>
-                <input name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required />
-              </label>
-
-              <button class="button button-primary auth-submit" type="submit">Enter Project Bridge</button>
-
-              <p class="auth-helper">
-                New here?
-                <button class="auth-inline-button" type="button" data-auth-view="register">Create your membership</button>
-              </p>
-            </form>
+            <button id="authThemeToggle" class="auth-theme-toggle" type="button" aria-label="Change color theme">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </button>
           </section>
         </div>
       </div>
 
+      <!-- Register Page -->
       <div id="registerAuthPage" class="auth-page" data-auth-page="register" hidden>
         <div class="auth-stage auth-stage-register">
-          <section class="auth-story auth-story-register panel">
-            <p class="eyebrow">Become a member</p>
-            <h1>Build a profile that makes your skills, intent, and next move easy to trust.</h1>
-            <p class="auth-text">
-              Membership turns your expertise into a visible collaboration presence, so the right people can discover you, invite you, and move quickly toward a focused project room.
-            </p>
+          <section class="auth-brand-section">
+            <div class="auth-brand-content">
+              <p class="eyebrow">Become a member</p>
+              <h1>Build a profile that makes your skills easy to trust.</h1>
+              <p class="auth-text">
+                Membership turns your expertise into a visible collaboration presence, so the right people can discover you, invite you, and move quickly toward a focused project room.
+              </p>
 
-            <div class="auth-highlight-grid">
-              <article class="auth-highlight">
-                <p class="eyebrow">Visible expertise</p>
-                <strong>Show what you do best before the first conversation starts.</strong>
-                <p class="section-note">Your profile helps others understand your strengths, availability, and where you fit best.</p>
-              </article>
-
-              <article class="auth-highlight">
-                <p class="eyebrow">Clear momentum</p>
-                <strong>Move from discovery to action without losing the thread.</strong>
-                <p class="section-note">Projects, rooms, and introductions stay connected so every next step feels intentional.</p>
-              </article>
-            </div>
-
-            <div class="auth-demo-card">
-              <p class="eyebrow">Membership unlocks</p>
-              <h2>Create, connect, and contribute with clarity.</h2>
-              <div class="auth-demo-meta">
-                <div class="auth-demo-item">
-                  <span>Projects</span>
-                  <strong>Publish your own collaboration ideas</strong>
-                </div>
-                <div class="auth-demo-item">
-                  <span>Rooms</span>
-                  <strong>Open focused discussions with context</strong>
-                </div>
-                <div class="auth-demo-item">
-                  <span>Profile</span>
-                  <strong>Let people find your best contribution fast</strong>
-                </div>
+              <div class="auth-feature-pills">
+                <span class="auth-feature-pill">
+                  <span class="auth-feature-icon" aria-hidden="true">◆</span>
+                  Visible expertise
+                </span>
+                <span class="auth-feature-pill">
+                  <span class="auth-feature-icon" aria-hidden="true">◆</span>
+                  Clear momentum
+                </span>
+                <span class="auth-feature-pill">
+                  <span class="auth-feature-icon" aria-hidden="true">◆</span>
+                  Publish ideas
+                </span>
               </div>
             </div>
           </section>
 
-          <section class="auth-panel panel">
-            <div class="auth-panel-header">
-              <button class="button button-secondary auth-back-link" type="button" data-auth-view="login">Back to login</button>
-              <p class="eyebrow">Become a member</p>
-              <h2>Create your account.</h2>
-              <p class="section-note">Add your details once, then return to login and enter the platform with your email and password.</p>
+          <section class="auth-panel auth-glass-panel">
+            <div class="auth-panel-inner">
+              <div class="auth-panel-header">
+                <button class="button button-secondary auth-back-link" type="button" data-auth-view="login">← Back to login</button>
+                <p class="eyebrow">Create account</p>
+                <h2>Join the platform.</h2>
+                <p class="section-note">Add your details once, then sign in with your email and password.</p>
+              </div>
+
+              <div id="authNoticeRegister" class="auth-notice" aria-live="polite"></div>
+
+              <form id="registerForm" class="auth-form">
+                <div class="auth-split">
+                  <label>
+                    <span>First name</span>
+                    <input name="firstName" type="text" placeholder="Ada" autocomplete="given-name" aria-required="true" required />
+                  </label>
+
+                  <label>
+                    <span>Last name</span>
+                    <input name="lastName" type="text" placeholder="Lovelace" autocomplete="family-name" aria-required="true" required />
+                  </label>
+                </div>
+
+                <label>
+                  <span>Gmail / Email</span>
+                  <input name="email" type="email" placeholder="yourname@gmail.com" autocomplete="email" aria-required="true" required />
+                </label>
+
+                <label>
+                  <span>Phone number</span>
+                  <input name="phone" type="tel" placeholder="+90 555 123 45 67" autocomplete="tel" aria-required="true" required />
+                </label>
+
+                <fieldset class="auth-profession-field">
+                  <legend>Meslek / Current role</legend>
+                  <p class="auth-profession-note">Hesabı açarken sizi en iyi anlatan mesleği veya mevcut rolü seçin.</p>
+                  <div id="professionOptions" class="auth-profession-grid" role="radiogroup" aria-label="Profession options"></div>
+                </fieldset>
+
+                <div class="auth-split">
+                  <label>
+                    <span>Create password</span>
+                    <input name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" aria-required="true" required />
+                  </label>
+
+                  <label>
+                    <span>Confirm password</span>
+                    <input name="confirmPassword" type="password" placeholder="Repeat your password" autocomplete="new-password" aria-required="true" required />
+                  </label>
+                </div>
+
+                <button class="button button-primary auth-submit" type="submit">Create account</button>
+
+                <p class="auth-helper">
+                  Already registered?
+                  <button class="auth-inline-button" type="button" data-auth-view="login">Go to login</button>
+                </p>
+              </form>
             </div>
 
-            <div id="authNoticeRegister" class="auth-notice" aria-live="polite"></div>
-
-            <form id="registerForm" class="auth-form">
-              <div class="auth-split">
-                <label>
-                  <span>First name</span>
-                  <input name="firstName" type="text" placeholder="Ada" autocomplete="given-name" required />
-                </label>
-
-                <label>
-                  <span>Last name</span>
-                  <input name="lastName" type="text" placeholder="Lovelace" autocomplete="family-name" required />
-                </label>
-              </div>
-
-              <label>
-                <span>Gmail / Email</span>
-                <input name="email" type="email" placeholder="yourname@gmail.com" autocomplete="email" required />
-              </label>
-
-              <label>
-                <span>Phone number</span>
-                <input name="phone" type="tel" placeholder="+90 555 123 45 67" autocomplete="tel" required />
-              </label>
-
-              <fieldset class="auth-profession-field">
-                <legend>Meslek / Current role</legend>
-                <p class="auth-profession-note">Hesabı açarken sizi en iyi anlatan mesleği veya mevcut rolü seçin.</p>
-                <div id="professionOptions" class="auth-profession-grid" role="radiogroup" aria-label="Profession options"></div>
-              </fieldset>
-
-              <div class="auth-split">
-                <label>
-                  <span>Create password</span>
-                  <input name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" required />
-                </label>
-
-                <label>
-                  <span>Confirm password</span>
-                  <input name="confirmPassword" type="password" placeholder="Repeat your password" autocomplete="new-password" required />
-                </label>
-              </div>
-
-              <button class="button button-primary auth-submit" type="submit">Create account</button>
-
-              <p class="auth-helper">
-                Already registered?
-                <button class="auth-inline-button" type="button" data-auth-view="login">Go to login</button>
-              </p>
-            </form>
+            <button id="authThemeToggleRegister" class="auth-theme-toggle" type="button" aria-label="Change color theme">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </button>
           </section>
         </div>
       </div>
@@ -194,45 +202,61 @@
         <header class="topbar">
           <div class="topbar-start">
             <div class="brand-lockup">
-              <p class="eyebrow">Project Bridge</p>
-              <h1 id="pageHeading">Where every profession builds better together.</h1>
+              <div class="brand-logo" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" stroke="var(--accent)" stroke-width="2"/><path d="M10 16c0-3.3 2.7-6 6-6s6 2.7 6 6-2.7 6-6 6" stroke="var(--accent-strong)" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="2.5" fill="var(--accent)"/></svg>
+              </div>
+              <div>
+                <p class="eyebrow">Project Bridge</p>
+                <h1 id="pageHeading">Where every profession builds better together.</h1>
+              </div>
             </div>
           </div>
 
           <div class="topbar-controls">
+            <div id="topbarUserGreeting" class="topbar-greeting" aria-live="polite"></div>
             <button id="themeToggle" class="theme-toggle" type="button"></button>
-            <button id="logoutButton" class="button button-secondary topbar-logout" type="button">Sign out</button>
+            <button id="logoutButton" class="button button-secondary topbar-logout" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign out
+            </button>
           </div>
         </header>
 
         <nav class="section-bar panel" aria-label="Sections navigation">
           <a class="section-bar-link" href="#overview" data-view-link="overview">
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             <strong>Overview</strong>
-            <span>Platform intro</span>
+            <span>Dashboard</span>
           </a>
           <a class="section-bar-link" href="#projects" data-view-link="projects">
-            <strong>Project Board</strong>
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <strong>Projects</strong>
             <span>Live ideas</span>
           </a>
           <a class="section-bar-link" href="#network" data-view-link="network">
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <strong>Network</strong>
-            <span>People and expertise</span>
+            <span>People</span>
           </a>
           <a class="section-bar-link" href="#create" data-view-link="create">
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             <strong>Create</strong>
-            <span>Post a project</span>
+            <span>New project</span>
           </a>
           <a class="section-bar-link" href="#focused-contact" data-view-link="focused-contact">
-            <strong>Focused Contact</strong>
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <strong>Contact</strong>
             <span>Start a room</span>
           </a>
           <a class="section-bar-link" href="#rooms" data-view-link="rooms">
-            <strong>Rooms Hub</strong>
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <strong>Rooms</strong>
             <span>Live threads</span>
           </a>
           <a class="section-bar-link" href="#profile" data-view-link="profile">
-            <strong>Member Profiles</strong>
-            <span>Strength and fit</span>
+            <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <strong>Profiles</strong>
+            <span>Members</span>
           </a>
         </nav>
 
@@ -243,12 +267,18 @@
               <p class="eyebrow">High-trust collaboration network</p>
               <h2>Find your next <span class="hero-emphasis">collaborator</span> with clarity.</h2>
               <p class="hero-text">
-                Project Bridge helps ambitious professionals discover the right expertise, evaluate live opportunities, and move into focused project rooms without losing context.
+                Discover the right expertise, evaluate live opportunities, and move into focused project rooms without losing context.
               </p>
 
               <div class="hero-actions">
-                <a href="#create" class="button button-primary" data-view-link="create">Launch a project</a>
-                <a href="#network" class="button button-secondary" data-view-link="network">Explore network</a>
+                <a href="#create" class="button button-primary" data-view-link="create">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                  Launch a project
+                </a>
+                <a href="#network" class="button button-secondary" data-view-link="network">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  Explore network
+                </a>
               </div>
 
               <div class="hero-signal-row">
@@ -263,13 +293,29 @@
                 <div class="hero-visual-glow"></div>
                 <div class="hero-visual-orbit"></div>
                 <article class="hero-spotlight-card">
-                  <p class="eyebrow">Featured momentum</p>
-                  <h3>Pioneering environments for high-trust collaboration.</h3>
-                  <p class="section-note">From healthcare pilots to product systems, every opportunity stays tied to people, context, and the next real action.</p>
-                  <div class="hero-spotlight-meta">
-                    <span>Live rooms</span>
-                    <span>Trusted expertise</span>
-                    <span>Actionable next steps</span>
+                  <p class="eyebrow">How it works</p>
+                  <div class="hero-steps">
+                    <div class="hero-step">
+                      <span class="hero-step-number">1</span>
+                      <div>
+                        <strong>Discover</strong>
+                        <p>Browse projects and people across disciplines.</p>
+                      </div>
+                    </div>
+                    <div class="hero-step">
+                      <span class="hero-step-number">2</span>
+                      <div>
+                        <strong>Connect</strong>
+                        <p>Add people to your network with one click.</p>
+                      </div>
+                    </div>
+                    <div class="hero-step">
+                      <span class="hero-step-number">3</span>
+                      <div>
+                        <strong>Collaborate</strong>
+                        <p>Open focused rooms tied to real projects.</p>
+                      </div>
+                    </div>
                   </div>
                 </article>
               </div>

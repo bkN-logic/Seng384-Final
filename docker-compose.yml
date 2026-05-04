@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    image: project-bridge:latest
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+    volumes:
+      # Kalıcı veri: container içindeki /app/data ile proje ./data klasörü eşlenir
+      - ./data:/app/data
+    restart: unless-stopped

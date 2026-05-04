@@ -5,6 +5,10 @@
   "description": "A premium collaboration platform where professionals can discover projects, build trusted connections, and work inside focused rooms.",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "docker:build": "docker build -t project-bridge:latest .",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f web"
   }
 }

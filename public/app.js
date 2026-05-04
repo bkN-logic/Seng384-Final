@@ -1,13 +1,13 @@
 const THEME_ORDER = ["neon", "earth", "citrus"];
 const VIEW_IDS = ["overview", "projects", "network", "create", "focused-contact", "rooms", "profile"];
 const VIEW_HEADINGS = {
-  overview: "Where every profession builds better together.",
-  projects: "Discover live projects that are ready for the right collaborator.",
-  network: "Meet people across disciplines and find the right expertise.",
-  create: "Turn a strong idea into a clear collaboration opportunity.",
-  "focused-contact": "Open a focused project room with the right person.",
-  rooms: "Follow the conversations where momentum, replies, and decisions come together.",
-  profile: "Explore each member's strengths, readiness, and collaboration potential.",
+  overview: "Your workspace at a glance.",
+  projects: "Live projects ready for collaboration.",
+  network: "Discover people and expertise.",
+  create: "Publish a new collaboration idea.",
+  "focused-contact": "Open a focused project room.",
+  rooms: "Your active conversations.",
+  profile: "Member profiles and strengths.",
 };
 const LEGACY_VIEW_MAP = {
   projectBoard: "projects",
@@ -22,6 +22,296 @@ const THEME_LABELS = {
   earth: "Earth Canvas",
   citrus: "Citrus Tide",
 };
+
+/* ─── DNA Theme Color Hash Map ─── */
+const DNA_THEME_COLORS = {
+  neon: {
+    strandA: { r: 182, g: 138, b: 255 },  // #b68aff
+    strandB: { r: 86,  g: 221, b: 217 },  // #56ddd9
+    glow:    { r: 255, g: 107, b: 214 },  // #ff6bd6
+    particle:{ r: 216, g: 194, b: 255 },  // #d8c2ff
+    bgDeep:  { r: 9,   g: 9,   b: 13  },  // #09090d
+    bgMid:   { r: 17,  g: 17,  b: 22  },  // #111116
+  },
+  earth: {
+    strandA: { r: 208, g: 160, b: 109 },  // #d0a06d
+    strandB: { r: 125, g: 177, b: 126 },  // #7db17e
+    glow:    { r: 240, g: 207, b: 159 },  // #f0cf9f
+    particle:{ r: 200, g: 168, b: 122 },  // #c8a87a
+    bgDeep:  { r: 15,  g: 13,  b: 14  },  // #0f0d0e
+    bgMid:   { r: 23,  g: 18,  b: 20  },  // #171214
+  },
+  citrus: {
+    strandA: { r: 255, g: 154, b: 83  },  // #ff9a53
+    strandB: { r: 79,  g: 212, b: 199 },  // #4fd4c7
+    glow:    { r: 255, g: 208, b: 138 },  // #ffd08a
+    particle:{ r: 255, g: 179, b: 107 },  // #ffb36b
+    bgDeep:  { r: 10,  g: 15,  b: 16  },  // #0a0f10
+    bgMid:   { r: 18,  g: 25,  b: 26  },  // #12191a
+  },
+};
+
+/* ─── DNA Helix Canvas Animation ─── */
+class DNAHelix {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
+    this.animationId = null;
+    this.time = 0;
+    this.particles = [];
+    this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    this.currentColors = this._cloneColors(DNA_THEME_COLORS.neon);
+    this.targetColors = this._cloneColors(DNA_THEME_COLORS.neon);
+    this.lerpSpeed = 0.025;
+
+    this._resize = this._resize.bind(this);
+    this._tick = this._tick.bind(this);
+    window.addEventListener("resize", this._resize);
+    this._resize();
+    this._initParticles();
+  }
+
+  _cloneColors(colors) {
+    const result = {};
+    for (const key in colors) {
+      result[key] = { ...colors[key] };
+    }
+    return result;
+  }
+
+  _lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  _lerpColor(current, target, t) {
+    return {
+      r: Math.round(this._lerp(current.r, target.r, t)),
+      g: Math.round(this._lerp(current.g, target.g, t)),
+      b: Math.round(this._lerp(current.b, target.b, t)),
+    };
+  }
+
+  _rgb(color, alpha = 1) {
+    return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+  }
+
+  setThemeColors(theme) {
+    const colors = DNA_THEME_COLORS[theme] || DNA_THEME_COLORS.neon;
+    this.targetColors = this._cloneColors(colors);
+  }
+
+  _resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = this.canvas.parentElement?.getBoundingClientRect() || {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+    this.canvas.width = rect.width * dpr;
+    this.canvas.height = rect.height * dpr;
+    this.canvas.style.width = rect.width + "px";
+    this.canvas.style.height = rect.height + "px";
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.width = rect.width;
+    this.height = rect.height;
+  }
+
+  _initParticles() {
+    this.particles = [];
+    const count = 60;
+    for (let i = 0; i < count; i++) {
+      this.particles.push({
+        x: Math.random() * 2000,
+        y: Math.random() * 2000,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() * 2.5 + 0.5,
+        alpha: Math.random() * 0.4 + 0.1,
+        pulse: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  start() {
+    if (this.reducedMotion) return;
+    if (this.animationId) return;
+    this._tick();
+  }
+
+  stop() {
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+  }
+
+  _tick() {
+    this.time += 0.008;
+
+    // Lerp colors toward target
+    for (const key in this.targetColors) {
+      this.currentColors[key] = this._lerpColor(
+        this.currentColors[key],
+        this.targetColors[key],
+        this.lerpSpeed
+      );
+    }
+
+    this._draw();
+    this.animationId = requestAnimationFrame(this._tick);
+  }
+
+  _draw() {
+    const ctx = this.ctx;
+    const w = this.width;
+    const h = this.height;
+    const c = this.currentColors;
+
+    // Clear with deep background
+    ctx.fillStyle = this._rgb(c.bgDeep);
+    ctx.fillRect(0, 0, w, h);
+
+    // Background radial glows
+    const bgGrad1 = ctx.createRadialGradient(w * 0.3, h * 0.3, 0, w * 0.3, h * 0.3, h * 0.6);
+    bgGrad1.addColorStop(0, this._rgb(c.strandA, 0.08));
+    bgGrad1.addColorStop(1, "transparent");
+    ctx.fillStyle = bgGrad1;
+    ctx.fillRect(0, 0, w, h);
+
+    const bgGrad2 = ctx.createRadialGradient(w * 0.7, h * 0.7, 0, w * 0.7, h * 0.7, h * 0.5);
+    bgGrad2.addColorStop(0, this._rgb(c.strandB, 0.06));
+    bgGrad2.addColorStop(1, "transparent");
+    ctx.fillStyle = bgGrad2;
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw particles
+    this._drawParticles(ctx, w, h, c);
+
+    // Draw DNA helix
+    this._drawHelix(ctx, w, h, c);
+  }
+
+  _drawParticles(ctx, w, h, c) {
+    for (const p of this.particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.pulse += 0.02;
+
+      if (p.x < 0) p.x = w;
+      if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h;
+      if (p.y > h) p.y = 0;
+
+      const pulseAlpha = p.alpha * (0.5 + 0.5 * Math.sin(p.pulse));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = this._rgb(c.particle, pulseAlpha);
+      ctx.fill();
+    }
+  }
+
+  _drawHelix(ctx, w, h, c) {
+    const helixCenterX = w * 0.35;
+    const amplitude = Math.min(w * 0.12, 120);
+    const verticalSpacing = 14;
+    const totalPoints = Math.ceil(h / verticalSpacing) + 20;
+    const startY = -60;
+
+    const strandAPoints = [];
+    const strandBPoints = [];
+
+    for (let i = 0; i < totalPoints; i++) {
+      const y = startY + i * verticalSpacing;
+      const phase = (i * 0.12) + this.time * 2;
+      const xA = helixCenterX + Math.sin(phase) * amplitude;
+      const xB = helixCenterX + Math.sin(phase + Math.PI) * amplitude;
+      const depthA = Math.cos(phase);
+      const depthB = Math.cos(phase + Math.PI);
+
+      strandAPoints.push({ x: xA, y, depth: depthA });
+      strandBPoints.push({ x: xB, y, depth: depthB });
+    }
+
+    // Draw connecting base pairs first (behind strands)
+    for (let i = 0; i < totalPoints; i += 3) {
+      const a = strandAPoints[i];
+      const b = strandBPoints[i];
+      if (!a || !b) continue;
+
+      const avgDepth = (a.depth + b.depth) / 2;
+      const alpha = 0.08 + Math.abs(avgDepth) * 0.12;
+
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = this._rgb(c.glow, alpha);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Small node dots at connection points
+      const midX = (a.x + b.x) / 2;
+      const midY = (a.y + b.y) / 2;
+      ctx.beginPath();
+      ctx.arc(midX, midY, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = this._rgb(c.glow, alpha * 1.5);
+      ctx.fill();
+    }
+
+    // Draw strands
+    this._drawStrand(ctx, strandAPoints, c.strandA, c.glow);
+    this._drawStrand(ctx, strandBPoints, c.strandB, c.glow);
+
+    // Draw glow nodes on top
+    for (let i = 0; i < totalPoints; i += 4) {
+      for (const points of [strandAPoints, strandBPoints]) {
+        const p = points[i];
+        if (!p) continue;
+        const glowSize = 8 + Math.abs(p.depth) * 12;
+        const alpha = 0.15 + Math.abs(p.depth) * 0.25;
+
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowSize);
+        grad.addColorStop(0, this._rgb(c.glow, alpha));
+        grad.addColorStop(1, "transparent");
+        ctx.fillStyle = grad;
+        ctx.fillRect(p.x - glowSize, p.y - glowSize, glowSize * 2, glowSize * 2);
+      }
+    }
+  }
+
+  _drawStrand(ctx, points, color, glowColor) {
+    if (points.length < 2) return;
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+
+    for (let i = 1; i < points.length - 1; i++) {
+      const curr = points[i];
+      const next = points[i + 1];
+      const cpX = (curr.x + next.x) / 2;
+      const cpY = (curr.y + next.y) / 2;
+      ctx.quadraticCurveTo(curr.x, curr.y, cpX, cpY);
+    }
+
+    const last = points[points.length - 1];
+    ctx.lineTo(last.x, last.y);
+
+    // Shadow glow
+    ctx.strokeStyle = this._rgb(glowColor, 0.3);
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    // Main strand
+    ctx.strokeStyle = this._rgb(color, 0.85);
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  destroy() {
+    this.stop();
+    window.removeEventListener("resize", this._resize);
+  }
+}
+
 const PROFESSION_OPTIONS = [
   "Student",
   "Unemployed / Not Working",
@@ -85,6 +375,7 @@ const state = {
 const elements = {
   authScreen: document.querySelector("#authScreen"),
   appShell: document.querySelector("#appShell"),
+  dnaCanvas: document.querySelector("#dnaCanvas"),
   loginAuthPage: document.querySelector("#loginAuthPage"),
   registerAuthPage: document.querySelector("#registerAuthPage"),
   authNoticeLogin: document.querySelector("#authNoticeLogin"),
@@ -92,6 +383,9 @@ const elements = {
   loginForm: document.querySelector("#loginForm"),
   registerForm: document.querySelector("#registerForm"),
   professionOptions: document.querySelector("#professionOptions"),
+  authThemeToggle: document.querySelector("#authThemeToggle"),
+  authThemeToggleRegister: document.querySelector("#authThemeToggleRegister"),
+  topbarUserGreeting: document.querySelector("#topbarUserGreeting"),
   pageHeading: document.querySelector("#pageHeading"),
   profileUserSelect: document.querySelector("#activeUserSelect"),
   peopleSearch: document.querySelector("#peopleSearch"),
@@ -122,6 +416,7 @@ const elements = {
 
 let noticeTimer = null;
 let authNoticeTimer = null;
+let dnaHelix = null;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => {
@@ -442,12 +737,19 @@ function showAuthScreen() {
   setSectionMenuOpen(false);
   elements.appShell.hidden = true;
   elements.authScreen.hidden = false;
+  if (dnaHelix) {
+    dnaHelix._resize();
+    dnaHelix.start();
+  }
 }
 
 function showAppShell() {
   clearAuthNotice();
   elements.authScreen.hidden = true;
   elements.appShell.hidden = false;
+  if (dnaHelix) {
+    dnaHelix.stop();
+  }
 }
 
 function setFormPending(form, isPending, pendingLabel) {
@@ -482,6 +784,11 @@ function setTheme(theme) {
   state.theme = resolvedTheme;
   document.body.dataset.theme = resolvedTheme;
 
+  // Sync DNA helix colors
+  if (dnaHelix) {
+    dnaHelix.setThemeColors(resolvedTheme);
+  }
+
   [elements.themeToggle, elements.footerThemeToggle].forEach((button) => {
     if (!button) {
       return;
@@ -490,6 +797,13 @@ function setTheme(theme) {
     button.textContent = `Theme: ${THEME_LABELS[resolvedTheme]}`;
     button.setAttribute("aria-label", `Current theme ${THEME_LABELS[resolvedTheme]}. Switch to ${THEME_LABELS[nextTheme]}.`);
     button.title = `Switch to ${THEME_LABELS[nextTheme]}`;
+  });
+
+  // Update auth theme toggle buttons tooltip
+  [elements.authThemeToggle, elements.authThemeToggleRegister].forEach((button) => {
+    if (!button) return;
+    button.title = `Switch to ${THEME_LABELS[nextTheme]}`;
+    button.setAttribute("aria-label", `Current theme ${THEME_LABELS[resolvedTheme]}. Switch to ${THEME_LABELS[nextTheme]}.`);
   });
 }
 
@@ -1149,6 +1463,22 @@ function renderThread() {
   elements.messageForm.hidden = false;
 }
 
+function renderUserGreeting() {
+  const user = getActiveUser();
+  if (!elements.topbarUserGreeting || !user) return;
+
+  const name = user.name || "User";
+  const parts = name.split(" ");
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.substring(0, 2).toUpperCase();
+  const firstName = escapeHtml(parts[0]);
+
+  elements.topbarUserGreeting.innerHTML = `
+    <span class="topbar-avatar">${initials}</span>
+    <span>${firstName}</span>
+  `;
+}
 function renderAll() {
   renderCurrentView();
 
@@ -1156,6 +1486,7 @@ function renderAll() {
     return;
   }
 
+  renderUserGreeting();
   populateActiveUserSelect();
   renderStats();
   renderProjects();
@@ -1518,6 +1849,19 @@ function bindEvents() {
     });
   }
 
+  // Auth screen theme toggles
+  if (elements.authThemeToggle) {
+    elements.authThemeToggle.addEventListener("click", () => {
+      setTheme(getNextTheme(state.theme));
+    });
+  }
+
+  if (elements.authThemeToggleRegister) {
+    elements.authThemeToggleRegister.addEventListener("click", () => {
+      setTheme(getNextTheme(state.theme));
+    });
+  }
+
   elements.logoutButton.addEventListener("click", () => {
     logout();
   });
@@ -1665,6 +2009,11 @@ function bindEvents() {
 }
 
 async function init() {
+  // Initialize DNA helix canvas
+  if (elements.dnaCanvas) {
+    dnaHelix = new DNAHelix(elements.dnaCanvas);
+  }
+
   setTheme(state.theme);
   setSectionMenuOpen(false);
   state.currentView = getViewFromHash();
