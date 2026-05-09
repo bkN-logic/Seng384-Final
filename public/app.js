@@ -1,4 +1,4 @@
-const THEME_ORDER = ["neon", "earth", "citrus"];
+const THEME_ORDER = ["neon", "earth", "citrus", "light"];
 const VIEW_IDS = ["overview", "projects", "network", "create", "focused-contact", "rooms", "profile"];
 const VIEW_HEADINGS = {
   overview: "Your workspace at a glance.",
@@ -21,10 +21,19 @@ const THEME_LABELS = {
   neon: "Neon Pulse",
   earth: "Earth Canvas",
   citrus: "Citrus Tide",
+  light: "Light Mode",
 };
 
 /* ─── DNA Theme Color Hash Map ─── */
 const DNA_THEME_COLORS = {
+  light: {
+    strandA: { r: 37,  g: 99,  b: 235 },   // #2563eb
+    strandB: { r: 124, g: 58,  b: 237 },   // #7c3aed
+    glow:    { r: 96,  g: 165, b: 250 },   // #60a5fa
+    particle:{ r: 59,  g: 130, b: 246 },   // #3b82f6
+    bgDeep:  { r: 240, g: 244, b: 248 },   // #f0f4f8
+    bgMid:   { r: 228, g: 236, b: 244 },   // #e4ecf4
+  },
   neon: {
     strandA: { r: 182, g: 138, b: 255 },  // #b68aff
     strandB: { r: 86,  g: 221, b: 217 },  // #56ddd9
@@ -370,6 +379,10 @@ const state = {
   theme: DEFAULT_THEME,
   currentView: "overview",
   authView: "login",
+  connectionRequests: [],
+  projectRequests: [],
+  notifications: [],
+  pendingJoinProjectId: null,
 };
 
 const elements = {
@@ -412,6 +425,20 @@ const elements = {
   filterButtons: [...document.querySelectorAll(".filter-chip")],
   pageViews: [...document.querySelectorAll("[data-view]")],
   viewLinks: [...document.querySelectorAll("[data-view-link]")],
+  notificationBell: document.querySelector("#notificationBell"),
+  notificationCount: document.querySelector("#notificationCount"),
+  notifPanel: document.querySelector("#notifPanel"),
+  notifPanelClose: document.querySelector("#notifPanelClose"),
+  notifBackdrop: document.querySelector("#notifBackdrop"),
+  notifList: document.querySelector("#notifList"),
+  joinModal: document.querySelector("#joinModal"),
+  joinModalClose: document.querySelector("#joinModalClose"),
+  joinModalCancelBtn: document.querySelector("#joinModalCancelBtn"),
+  joinModalBackdrop: document.querySelector("#joinModalBackdrop"),
+  joinMotivationForm: document.querySelector("#joinMotivationForm"),
+  joinMotivationText: document.querySelector("#joinMotivationText"),
+  joinModalProjectName: document.querySelector("#joinModalProjectName"),
+  joinModalSubmitBtn: document.querySelector("#joinModalSubmitBtn"),
 };
 
 let noticeTimer = null;
@@ -573,6 +600,10 @@ function clearSessionState() {
   state.profileUserId = null;
   state.activeConversationId = null;
   state.peopleSearch = "";
+  state.connectionRequests = [];
+  state.projectRequests = [];
+  state.notifications = [];
+  state.pendingJoinProjectId = null;
 }
 
 function getUserById(userId) {
@@ -1146,6 +1177,14 @@ function renderProjects() {
           conversation.projectId === project.id && conversation.participantIds.includes(state.activeUserId)
       );
       const style = getVisualStyle(`${project.title}-${project.domain}-${index}`);
+      const isOwner = activeUser?.id === project.ownerId;
+
+      // Project join request state
+      const sentJoinRequest = state.projectRequests.find(
+        (r) => r.fromId === state.activeUserId && r.projectId === project.id && r.status === "pending"
+      );
+      const joinDisabled = isOwner || !!sentJoinRequest;
+      const joinLabel = isOwner ? "Your project" : sentJoinRequest ? "⏳ Request sent" : "Join project";
 
       return `
         <article class="project-card" style="${style}">
@@ -1176,10 +1215,19 @@ function renderProjects() {
 
           <div class="pill-row">
             <button class="mini-button" type="button" data-action="project-room" data-project-id="${project.id}">
-              ${hasConversation ? "Open room" : activeUser?.id === project.ownerId ? "Plan room" : "Start room"}
+              ${hasConversation ? "Open room" : isOwner ? "Plan room" : "Start room"}
             </button>
             <button class="mini-button is-ghost" type="button" data-action="prefill-room" data-project-id="${project.id}">
               Use in room builder
+            </button>
+            <button
+              class="mini-button ${isOwner ? "is-ghost" : "is-accent"}"
+              type="button"
+              data-action="join-project"
+              data-project-id="${project.id}"
+              ${joinDisabled ? "disabled" : ""}
+            >
+              ${joinLabel}
             </button>
           </div>
         </article>
@@ -1230,6 +1278,27 @@ function renderPeople() {
       const isFriend = activeFriendIds.includes(user.id);
       const style = getVisualStyle(`${user.name}-${user.specialty}-${index}`);
 
+      // Connection request state
+      const sentRequest = state.connectionRequests.find(
+        (r) => r.fromId === state.activeUserId && r.toId === user.id && r.status === "pending"
+      );
+      const receivedRequest = state.connectionRequests.find(
+        (r) => r.fromId === user.id && r.toId === state.activeUserId && r.status === "pending"
+      );
+
+      let connectLabel, connectDisabled, connectAction;
+      if (isSignedInUser) {
+        connectLabel = "Signed in member"; connectDisabled = true; connectAction = "";
+      } else if (isFriend) {
+        connectLabel = "Already connected"; connectDisabled = true; connectAction = "";
+      } else if (sentRequest) {
+        connectLabel = "⏳ Request sent"; connectDisabled = true; connectAction = "";
+      } else if (receivedRequest) {
+        connectLabel = "📩 Respond to request"; connectDisabled = false; connectAction = "respond-connection";
+      } else {
+        connectLabel = "Send request"; connectDisabled = false; connectAction = "send-connection";
+      }
+
       return `
         <article class="person-card" style="${style}">
           <div class="person-art">
@@ -1259,11 +1328,11 @@ function renderPeople() {
             <button
               class="mini-button"
               type="button"
-              data-action="friend"
+              data-action="${connectAction}"
               data-user-id="${user.id}"
-              ${isSignedInUser ? "disabled" : ""}
+              ${connectDisabled ? "disabled" : ""}
             >
-              ${isSignedInUser ? "Signed in member" : isFriend ? "Already connected" : "Add to network"}
+              ${connectLabel}
             </button>
             <button
               class="mini-button is-ghost"
@@ -1395,7 +1464,7 @@ function renderConversations() {
 
       return `
         <article
-          class="conversation-card ${conversation.id === state.activeConversationId ? "is-active" : ""}"
+          class="conversation-card ${conversation.id === state.activeConversationId ? "is-active" : ""} ${conversation.closed ? "is-closed" : ""}"
           data-action="select-conversation"
           data-conversation-id="${conversation.id}"
           style="${style}"
@@ -1434,13 +1503,25 @@ function renderThread() {
     .map((name) => escapeHtml(name))
     .join(" · ");
 
+  const isClosed = Boolean(conversation.closed);
+
   elements.threadHeader.innerHTML = `
-    <p class="eyebrow">Focused room</p>
-    <h3>${escapeHtml(conversation.title)}</h3>
-    <p class="thread-subtitle">${escapeHtml(conversation.focus)}</p>
-    <p class="thread-subtitle">
-      <strong>Project:</strong> ${escapeHtml(project?.title || "Standalone")} · <strong>Participants:</strong> ${participants}
-    </p>
+    <div style="display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <p class="eyebrow">Focused room</p>
+        <h3>${escapeHtml(conversation.title)}</h3>
+        <p class="thread-subtitle">${escapeHtml(conversation.focus)}</p>
+        <p class="thread-subtitle">
+          <strong>Project:</strong> ${escapeHtml(project?.title || "Standalone")} · <strong>Participants:</strong> ${participants}
+        </p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+        ${isClosed
+          ? `<span class="room-closed-badge">Closed</span>`
+          : `<button class="mini-button is-ghost" type="button" data-action="close-room" data-conversation-id="${conversation.id}" style="white-space:nowrap;">Close room</button>`
+        }
+      </div>
+    </div>
   `;
 
   elements.messageThread.innerHTML = conversation.messages
@@ -1460,7 +1541,14 @@ function renderThread() {
     })
     .join("");
 
-  elements.messageForm.hidden = false;
+  if (isClosed) {
+    elements.messageThread.innerHTML += `<div class="room-closed-notice">This room is closed. The conversation history is preserved, but no new messages can be sent.</div>`;
+    elements.messageForm.hidden = true;
+    elements.threadHeader.closest(".thread-panel")?.classList.add("is-closed");
+  } else {
+    elements.messageForm.hidden = false;
+    elements.threadHeader.closest(".thread-panel")?.classList.remove("is-closed");
+  }
 }
 
 function renderUserGreeting() {
@@ -1498,10 +1586,14 @@ function renderAll() {
   syncRoomBuilderOptions();
   renderConversations();
   renderThread();
+  renderNotifications();
 }
 
 async function loadBootstrap() {
-  const payload = await request("/api/bootstrap");
+  const url = state.sessionUserId
+    ? `/api/bootstrap?userId=${encodeURIComponent(state.sessionUserId)}`
+    : "/api/bootstrap";
+  const payload = await request(url);
 
   state.users = Array.isArray(payload.users) ? payload.users : [];
   state.projects = Array.isArray(payload.projects)
@@ -1515,6 +1607,9 @@ async function loadBootstrap() {
       })
     : [];
   state.stats = payload.stats || {};
+  state.connectionRequests = Array.isArray(payload.connectionRequests) ? payload.connectionRequests : [];
+  state.projectRequests = Array.isArray(payload.projectRequests) ? payload.projectRequests : [];
+  state.notifications = Array.isArray(payload.notifications) ? payload.notifications : [];
 
   const sessionUser = getUserById(state.sessionUserId);
   if (!sessionUser) {
@@ -1556,24 +1651,170 @@ function logout({ message = "You signed out successfully.", tone = "success" } =
   showAuthNotice(message, tone);
 }
 
-async function addFriend(friendId) {
+async function sendConnectionRequest(toId) {
   const activeUser = getActiveUser();
+  if (!activeUser || toId === activeUser.id) return;
 
-  if (!activeUser || friendId === activeUser.id) {
-    return;
-  }
-
-  await request("/api/friends", {
+  await request("/api/connection-requests", {
     method: "POST",
-    body: JSON.stringify({
-      userId: activeUser.id,
-      friendId,
-    }),
+    body: JSON.stringify({ fromId: activeUser.id, toId }),
   });
 
   await loadBootstrap();
   renderAll();
-  showNotice("Network updated.");
+  showNotice("Connection request sent.");
+}
+
+async function respondToConnectionRequest(fromUserId, action) {
+  const activeUser = getActiveUser();
+  if (!activeUser) return;
+
+  const cr = state.connectionRequests.find(
+    (r) => r.fromId === fromUserId && r.toId === activeUser.id && r.status === "pending"
+  );
+  if (!cr) { showNotice("Request not found."); return; }
+
+  await request(`/api/connection-requests/${cr.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ action }),
+  });
+
+  closeNotifPanel();
+  await loadBootstrap();
+  renderAll();
+  showNotice(action === "accept" ? "Connection request accepted!" : "Request declined.");
+}
+
+function openJoinModal(projectId) {
+  const project = getProjectById(projectId);
+  if (!project) return;
+  state.pendingJoinProjectId = projectId;
+  elements.joinModalProjectName.textContent = `Write your motivation to join "${project.title}".`;
+  elements.joinMotivationText.value = "";
+  elements.joinModal.hidden = false;
+  elements.joinModalBackdrop.hidden = false;
+  elements.joinMotivationText.focus();
+}
+
+function closeJoinModal() {
+  elements.joinModal.hidden = true;
+  elements.joinModalBackdrop.hidden = true;
+  state.pendingJoinProjectId = null;
+}
+
+async function sendProjectJoinRequest(motivation) {
+  const activeUser = getActiveUser();
+  const projectId = state.pendingJoinProjectId;
+  if (!activeUser || !projectId) return;
+
+  await request("/api/project-requests", {
+    method: "POST",
+    body: JSON.stringify({ fromId: activeUser.id, projectId, motivation }),
+  });
+
+  closeJoinModal();
+  await loadBootstrap();
+  renderAll();
+  showNotice("Project join request sent!");
+}
+
+async function respondToProjectRequest(requestId, action) {
+  await request(`/api/project-requests/${requestId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ action }),
+  });
+
+  closeNotifPanel();
+  await loadBootstrap();
+  renderAll();
+  showNotice(action === "accept" ? "Join request accepted!" : "Join request declined.");
+}
+
+function renderNotifications() {
+  const notifs = state.notifications;
+  const unread = notifs.filter((n) => !n.read);
+
+  if (elements.notificationCount) {
+    elements.notificationCount.textContent = unread.length;
+    elements.notificationCount.hidden = unread.length === 0;
+  }
+
+  if (!elements.notifList) return;
+
+  if (!notifs.length) {
+    elements.notifList.innerHTML = '<div class="empty-state">No notifications yet.</div>';
+    return;
+  }
+
+  const sorted = [...notifs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  elements.notifList.innerHTML = sorted.map((n) => {
+    const isUnread = !n.read;
+    let actionButtons = "";
+
+    if (n.type === "connection_request") {
+      const isPending = state.connectionRequests.some(r => r.id === n.referenceId && r.status === "pending");
+      if (isPending) {
+        actionButtons = `
+          <div class="notif-actions">
+            <button class="mini-button is-accent" data-notif-action="accept-connection" data-from-id="${n.fromId}">Accept</button>
+            <button class="mini-button is-ghost" data-notif-action="decline-connection" data-from-id="${n.fromId}">Decline</button>
+          </div>`;
+      }
+    } else if (n.type === "project_request") {
+      const isPending = state.projectRequests.some(r => r.id === n.referenceId && r.status === "pending");
+      if (isPending) {
+        actionButtons = `
+          <div class="notif-actions">
+            ${n.motivation ? `<p class="notif-motivation"><em>"${escapeHtml(n.motivation)}"</em></p>` : ""}
+            <button class="mini-button is-accent" data-notif-action="accept-project" data-request-id="${n.referenceId}">Accept</button>
+            <button class="mini-button is-ghost" data-notif-action="decline-project" data-request-id="${n.referenceId}">Decline</button>
+          </div>`;
+      }
+    }
+
+    return `
+      <div class="notif-item ${isUnread ? "is-unread" : ""}">
+        <div class="notif-icon-wrap">
+          <span class="notif-type-icon">${getNotifIcon(n.type)}</span>
+        </div>
+        <div class="notif-body">
+          <p class="notif-message">${escapeHtml(n.message)}</p>
+          <p class="notif-time">${formatDate(n.createdAt)}</p>
+          ${actionButtons}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function getNotifIcon(type) {
+  if (type === "connection_request") return "🤝";
+  if (type === "connection_response") return "✅";
+  if (type === "project_request") return "📋";
+  if (type === "project_response") return "🎉";
+  return "🔔";
+}
+
+function openNotifPanel() {
+  elements.notifPanel.hidden = false;
+  elements.notifBackdrop.hidden = false;
+  renderNotifications();
+  // Mark all read after opening
+  if (state.activeUserId && state.notifications.some((n) => !n.read)) {
+    request("/api/notifications/read-all", {
+      method: "PATCH",
+      body: JSON.stringify({ userId: state.activeUserId }),
+    }).then(() => {
+      state.notifications.forEach((n) => { n.read = true; });
+      if (elements.notificationCount) elements.notificationCount.hidden = true;
+    }).catch(() => {});
+  }
+}
+
+function closeNotifPanel() {
+  elements.notifPanel.hidden = true;
+  elements.notifBackdrop.hidden = true;
 }
 
 async function createConversation(projectId, collaboratorId, focus = "") {
@@ -1622,6 +1863,13 @@ async function sendMessage(body) {
   await loadBootstrap();
   state.activeConversationId = conversationId;
   renderAll();
+}
+
+async function closeRoom(conversationId) {
+  await request(`/api/conversations/${conversationId}/close`, { method: "PATCH" });
+  await loadBootstrap();
+  renderAll();
+  showNotice("Room closed. Chat history is preserved.");
 }
 
 function prefillRoomBuilder(projectId, collaboratorId = null) {
@@ -1892,9 +2140,7 @@ function bindEvents() {
 
   elements.projectsList.addEventListener("click", async (event) => {
     const target = event.target.closest("button[data-action]");
-    if (!target) {
-      return;
-    }
+    if (!target) return;
 
     const { action, projectId } = target.dataset;
 
@@ -1909,19 +2155,26 @@ function bindEvents() {
     if (action === "prefill-room") {
       prefillRoomBuilder(projectId);
     }
+
+    if (action === "join-project") {
+      openJoinModal(projectId);
+    }
   });
 
   elements.peopleList.addEventListener("click", async (event) => {
     const target = event.target.closest("button[data-action]");
-    if (!target) {
-      return;
-    }
+    if (!target) return;
 
     const { action, userId } = target.dataset;
 
     try {
-      if (action === "friend") {
-        await addFriend(userId);
+      if (action === "send-connection") {
+        await sendConnectionRequest(userId);
+      }
+
+      if (action === "respond-connection") {
+        // open notification panel so user can accept/decline
+        openNotifPanel();
       }
 
       if (action === "direct-room") {
@@ -1930,7 +2183,6 @@ function bindEvents() {
           showNotice("Create a project first so the room has a shared context.");
           return;
         }
-
         prefillRoomBuilder(projectId, userId);
       }
     } catch (error) {
@@ -1988,6 +2240,20 @@ function bindEvents() {
     renderThread();
   });
 
+  elements.threadHeader.addEventListener("click", async (event) => {
+    const btn = event.target.closest("button[data-action='close-room']");
+    if (!btn) return;
+    const { conversationId } = btn.dataset;
+    if (!conversationId) return;
+    try {
+      btn.disabled = true;
+      await closeRoom(conversationId);
+    } catch (error) {
+      showNotice(error.message);
+      btn.disabled = false;
+    }
+  });
+
   elements.messageForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -2006,7 +2272,60 @@ function bindEvents() {
       showNotice(error.message);
     }
   });
+
+  // Notification panel
+  if (elements.notificationBell) {
+    elements.notificationBell.addEventListener("click", () => openNotifPanel());
+  }
+  if (elements.notifPanelClose) {
+    elements.notifPanelClose.addEventListener("click", () => closeNotifPanel());
+  }
+  if (elements.notifBackdrop) {
+    elements.notifBackdrop.addEventListener("click", () => closeNotifPanel());
+  }
+  if (elements.notifList) {
+    elements.notifList.addEventListener("click", async (event) => {
+      const btn = event.target.closest("button[data-notif-action]");
+      if (!btn) return;
+      const { notifAction, fromId, requestId } = btn.dataset;
+      try {
+        if (notifAction === "accept-connection") await respondToConnectionRequest(fromId, "accept");
+        if (notifAction === "decline-connection") await respondToConnectionRequest(fromId, "decline");
+        if (notifAction === "accept-project") await respondToProjectRequest(requestId, "accept");
+        if (notifAction === "decline-project") await respondToProjectRequest(requestId, "decline");
+      } catch (error) {
+        showNotice(error.message);
+      }
+    });
+  }
+
+  // Join project modal
+  if (elements.joinModalClose) {
+    elements.joinModalClose.addEventListener("click", () => closeJoinModal());
+  }
+  if (elements.joinModalCancelBtn) {
+    elements.joinModalCancelBtn.addEventListener("click", () => closeJoinModal());
+  }
+  if (elements.joinModalBackdrop) {
+    elements.joinModalBackdrop.addEventListener("click", () => closeJoinModal());
+  }
+  if (elements.joinMotivationForm) {
+    elements.joinMotivationForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const motivation = String(elements.joinMotivationText?.value || "").trim();
+      if (!motivation) { showNotice("Please write your motivation."); return; }
+      try {
+        elements.joinModalSubmitBtn && (elements.joinModalSubmitBtn.disabled = true);
+        await sendProjectJoinRequest(motivation);
+      } catch (error) {
+        showNotice(error.message);
+      } finally {
+        elements.joinModalSubmitBtn && (elements.joinModalSubmitBtn.disabled = false);
+      }
+    });
+  }
 }
+
 
 async function init() {
   // Initialize DNA helix canvas

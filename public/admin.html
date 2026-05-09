@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Bridge — Admin</title>
+    <style>
+      :root {
+        --bg: #0b0c14;
+        --bg-secondary: #10111d;
+        --surface: rgba(18, 19, 30, 0.9);
+        --surface-strong: rgba(22, 24, 38, 0.97);
+        --surface-muted: rgba(180, 134, 255, 0.1);
+        --text: #f0eeff;
+        --text-soft: #9b94b8;
+        --border: rgba(180, 134, 255, 0.14);
+        --accent: #b68aff;
+        --accent-strong: #56ddd9;
+        --accent-soft: rgba(182, 138, 255, 0.14);
+        --danger: #ff5555;
+        --danger-soft: rgba(255, 85, 85, 0.12);
+        --success: #56ddd9;
+        --success-soft: rgba(86, 221, 217, 0.12);
+        --warning: #ffb347;
+        --warning-soft: rgba(255, 179, 71, 0.12);
+        --shadow: 0 28px 80px rgba(0, 0, 0, 0.5);
+        --font: "Avenir Next", "Trebuchet MS", "Gill Sans", sans-serif;
+        --font-display: "Baskerville", "Palatino Linotype", serif;
+        --sidebar-w: 240px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: var(--font);
+        background: linear-gradient(160deg, var(--bg), var(--bg-secondary));
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      /* ── Login ── */
+      #adminLogin {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .login-card {
+        width: min(420px, 100%);
+        background: var(--surface-strong);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 36px 32px;
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 20px;
+      }
+
+      .login-card h1 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 2rem;
+        letter-spacing: -0.03em;
+      }
+
+      .login-card p { margin: 0; color: var(--text-soft); font-size: 0.9rem; }
+
+      .login-notice {
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        display: none;
+      }
+      .login-notice.error { display: block; background: var(--danger-soft); border: 1px solid var(--danger); color: var(--danger); }
+
+      /* ── Shell ── */
+      #adminShell { display: none; min-height: 100vh; }
+      #adminShell.is-visible { display: grid; grid-template-columns: var(--sidebar-w) 1fr; }
+
+      /* ── Sidebar ── */
+      .admin-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        background: var(--surface-strong);
+        border-right: 1px solid var(--border);
+        display: grid;
+        align-content: start;
+        gap: 0;
+        padding: 24px 0 32px;
+      }
+
+      .sidebar-brand {
+        padding: 0 20px 20px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 12px;
+      }
+
+      .sidebar-brand p { margin: 0; font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-soft); }
+      .sidebar-brand h2 { margin: 4px 0 0; font-family: var(--font-display); font-size: 1.3rem; letter-spacing: -0.02em; }
+      .sidebar-badge {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        color: white;
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        color: var(--text-soft);
+        cursor: pointer;
+        border: none;
+        background: none;
+        font: inherit;
+        font-size: 0.9rem;
+        width: 100%;
+        text-align: left;
+        border-radius: 0;
+        transition: background 180ms, color 180ms;
+      }
+
+      .nav-item:hover { background: var(--surface-muted); color: var(--text); }
+      .nav-item.is-active { background: var(--accent-soft); color: var(--accent); font-weight: 700; border-left: 3px solid var(--accent); padding-left: 17px; }
+
+      .nav-section-label {
+        padding: 16px 20px 6px;
+        font-size: 0.62rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--text-soft);
+        opacity: 0.6;
+      }
+
+      .sidebar-footer {
+        padding: 16px 20px 0;
+        border-top: 1px solid var(--border);
+        margin-top: 16px;
+      }
+
+      .logout-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--text-soft);
+        font: inherit;
+        font-size: 0.88rem;
+        cursor: pointer;
+        width: 100%;
+        transition: border-color 180ms, color 180ms, background 180ms;
+      }
+
+      .logout-btn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+
+      /* ── Main ── */
+      .admin-main {
+        padding: 32px 36px 64px;
+        overflow-y: auto;
+        min-height: 100vh;
+      }
+
+      .admin-section { display: none; }
+      .admin-section.is-active { display: block; }
+
+      .section-title {
+        margin: 0 0 6px;
+        font-family: var(--font-display);
+        font-size: 2rem;
+        letter-spacing: -0.03em;
+      }
+
+      .section-subtitle { margin: 0 0 28px; color: var(--text-soft); font-size: 0.9rem; line-height: 1.6; }
+
+      /* ── Stat cards ── */
+      .stat-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .stat-card {
+        background: var(--surface-strong);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+        opacity: 0.7;
+      }
+
+      .stat-label { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-soft); margin: 0 0 10px; }
+      .stat-value { font-size: 2.2rem; font-family: var(--font-display); font-weight: 700; letter-spacing: -0.04em; margin: 0; }
+
+      /* ── Table ── */
+      .table-wrap {
+        background: var(--surface-strong);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 24px;
+      }
+
+      .table-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap;
+      }
+
+      .table-toolbar h3 { margin: 0; font-size: 1rem; font-weight: 700; }
+
+      .search-input {
+        padding: 8px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(0,0,0,0.3);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.86rem;
+        outline: none;
+        width: 220px;
+        transition: border-color 180ms;
+      }
+
+      .search-input:focus { border-color: var(--accent); }
+      .search-input::placeholder { color: var(--text-soft); }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.86rem;
+      }
+
+      thead th {
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-soft);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+
+      tbody tr { transition: background 120ms; }
+      tbody tr:hover { background: var(--surface-muted); }
+      tbody td {
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        vertical-align: top;
+        max-width: 240px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      tbody tr:last-child td { border-bottom: none; }
+
+      .td-soft { color: var(--text-soft); }
+      .td-name { font-weight: 600; color: var(--text); }
+
+      /* ── Badges ── */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+      }
+      .badge-blue { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+      .badge-green { background: var(--success-soft); color: var(--success); border: 1px solid var(--success); }
+      .badge-red { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); }
+      .badge-yellow { background: var(--warning-soft); color: var(--warning); border: 1px solid var(--warning); }
+      .badge-gray { background: rgba(255,255,255,0.05); color: var(--text-soft); border: 1px solid rgba(255,255,255,0.1); }
+
+      /* ── Action buttons ── */
+      .action-btn {
+        padding: 5px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--text-soft);
+        font: inherit;
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition: border-color 150ms, color 150ms, background 150ms;
+        margin-right: 4px;
+      }
+      .action-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+      .action-btn.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+
+      /* ── Forms ── */
+      .admin-form {
+        background: var(--surface-strong);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 24px;
+        display: grid;
+        gap: 16px;
+        max-width: 560px;
+      }
+
+      .admin-form h3 { margin: 0 0 4px; font-size: 1rem; font-weight: 700; }
+      .admin-form p { margin: 0; color: var(--text-soft); font-size: 0.86rem; }
+
+      .field-group { display: grid; gap: 6px; }
+      .field-group label { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-soft); }
+
+      .field-input {
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(0,0,0,0.3);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 180ms;
+      }
+      .field-input:focus { border-color: var(--accent); }
+      .field-input::placeholder { color: rgba(255,255,255,0.2); }
+
+      .btn-primary {
+        padding: 11px 20px;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        color: white;
+        font: inherit;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: opacity 180ms, transform 180ms;
+      }
+      .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+      .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+      .btn-danger {
+        padding: 11px 20px;
+        border-radius: 12px;
+        border: 1px solid var(--danger);
+        background: var(--danger-soft);
+        color: var(--danger);
+        font: inherit;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: opacity 180ms, transform 180ms;
+      }
+      .btn-danger:hover { opacity: 0.88; transform: translateY(-1px); }
+
+      /* ── Notice ── */
+      .admin-notice {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        max-width: 320px;
+        padding: 14px 18px;
+        border-radius: 14px;
+        background: var(--surface-strong);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        font-size: 0.88rem;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 200ms, transform 200ms;
+        pointer-events: none;
+        z-index: 999;
+      }
+      .admin-notice.is-visible { opacity: 1; transform: translateY(0); }
+      .admin-notice.success { border-color: var(--success); background: var(--success-soft); color: var(--success); }
+      .admin-notice.error { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+
+      /* ── Empty ── */
+      .empty-row td { color: var(--text-soft); text-align: center; padding: 32px !important; font-style: italic; }
+
+      /* ── Pagination ── */
+      .pagination {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 14px 20px;
+        border-top: 1px solid var(--border);
+        font-size: 0.82rem;
+        color: var(--text-soft);
+      }
+      .page-btn {
+        padding: 5px 11px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--text-soft);
+        font: inherit;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: border-color 150ms, color 150ms;
+      }
+      .page-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+      .page-btn:disabled { opacity: 0.35; cursor: default; }
+      .page-btn.is-active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+      /* ── Confirm dialog ── */
+      .confirm-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        z-index: 500;
+        display: grid;
+        place-items: center;
+        display: none;
+      }
+      .confirm-overlay.is-open { display: grid; }
+      .confirm-card {
+        width: min(440px, 94vw);
+        background: var(--surface-strong);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 28px;
+        display: grid;
+        gap: 16px;
+        box-shadow: var(--shadow);
+      }
+      .confirm-card h3 { margin: 0; font-size: 1.1rem; }
+      .confirm-card p { margin: 0; color: var(--text-soft); font-size: 0.9rem; line-height: 1.6; }
+      .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; }
+      .btn-secondary {
+        padding: 9px 18px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--text-soft);
+        font: inherit;
+        font-size: 0.88rem;
+        cursor: pointer;
+        transition: border-color 150ms, color 150ms;
+      }
+      .btn-secondary:hover { border-color: var(--text); color: var(--text); }
+
+      /* ── Detail Drawer ── */
+      .detail-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(3px);
+        z-index: 400;
+        display: none;
+      }
+      .detail-backdrop.is-open { display: block; }
+
+      .detail-drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100dvh;
+        width: min(520px, 96vw);
+        background: var(--surface-strong);
+        border-left: 1px solid var(--border);
+        box-shadow: -20px 0 60px rgba(0,0,0,0.4);
+        z-index: 401;
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .detail-drawer.is-open { transform: translateX(0); }
+
+      .detail-drawer-inner {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .detail-drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      .detail-drawer-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .detail-drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 24px 32px;
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+
+      .detail-section { display: grid; gap: 10px; }
+      .detail-section-title {
+        font-size: 0.66rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--text-soft);
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 10px;
+      }
+
+      .detail-item {
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+        display: grid;
+        gap: 4px;
+      }
+
+      .detail-item-label {
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-soft);
+      }
+
+      .detail-item-value {
+        font-size: 0.9rem;
+        color: var(--text);
+        word-break: break-word;
+        white-space: normal;
+      }
+
+      .detail-item.full { grid-column: 1 / -1; }
+
+      .detail-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+        display: grid;
+        place-items: center;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 4px;
+      }
+
+      .detail-name {
+        font-size: 1.4rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 2px;
+      }
+
+      .detail-role {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        font-size: 0.76rem;
+        font-weight: 700;
+        width: fit-content;
+      }
+
+      .detail-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .detail-pill {
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.08);
+        font-size: 0.78rem;
+        color: var(--text-soft);
+      }
+
+      .notif-close-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-soft);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        transition: background 180ms, color 180ms, border-color 180ms;
+      }
+      .notif-close-btn:hover { background: var(--surface-muted); color: var(--text); border-color: var(--accent); }
+
+      @media (max-width: 900px) {
+        #adminShell.is-visible { grid-template-columns: 1fr; }
+        .admin-sidebar { position: static; height: auto; }
+        .stat-row { grid-template-columns: repeat(2, 1fr); }
+        .admin-main { padding: 20px 16px 48px; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- Login -->
+    <div id="adminLogin">
+      <div class="login-card">
+        <div>
+          <p>Project Bridge</p>
+          <h1>Admin Panel</h1>
+        </div>
+        <div id="loginNotice" class="login-notice error"></div>
+        <form id="adminLoginForm" style="display:grid;gap:14px;">
+          <div class="field-group">
+            <label>Admin password</label>
+            <input id="adminPasswordInput" class="field-input" type="password" placeholder="Enter admin password" autocomplete="current-password" required />
+          </div>
+          <button class="btn-primary" type="submit">Sign in to Admin</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- App Shell -->
+    <div id="adminShell">
+      <aside class="admin-sidebar">
+        <div class="sidebar-brand">
+          <p>Project Bridge</p>
+          <h2>Admin</h2>
+          <span class="sidebar-badge">Staff</span>
+        </div>
+
+        <span class="nav-section-label">Overview</span>
+        <button class="nav-item is-active" data-section="dashboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </button>
+
+        <span class="nav-section-label">Manage</span>
+        <button class="nav-item" data-section="users">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Users
+        </button>
+        <button class="nav-item" data-section="projects">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Projects
+        </button>
+        <button class="nav-item" data-section="rooms">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Rooms
+        </button>
+        <button class="nav-item" data-section="requests">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Requests
+        </button>
+
+        <div class="sidebar-footer">
+          <button class="logout-btn" id="adminLogoutBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </button>
+        </div>
+      </aside>
+
+      <main class="admin-main">
+
+        <!-- Dashboard -->
+        <section class="admin-section is-active" id="section-dashboard">
+          <h1 class="section-title">Dashboard</h1>
+          <p class="section-subtitle">Platform-wide statistics and quick health check.</p>
+          <div class="stat-row" id="dashStats"></div>
+          <div class="table-wrap">
+            <div class="table-toolbar"><h3>Recent activity</h3></div>
+            <table>
+              <thead><tr><th>Type</th><th>Details</th><th>Date</th></tr></thead>
+              <tbody id="recentActivity"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Users -->
+        <section class="admin-section" id="section-users">
+          <h1 class="section-title">Users</h1>
+          <p class="section-subtitle">View and manage all registered members.</p>
+          <div class="table-wrap">
+            <div class="table-toolbar">
+              <h3>All members</h3>
+              <input class="search-input" id="userSearch" type="search" placeholder="Search by name, role, city…" />
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Role</th>
+                  <th>Specialty</th>
+                  <th>City</th>
+                  <th>Network</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <!-- tbody populated by admin.js -->
+              <tbody id="usersTableBody"></tbody>
+            </table>
+            <div class="pagination" id="usersPagination"></div>
+          </div>
+        </section>
+
+        <!-- Projects -->
+        <section class="admin-section" id="section-projects">
+          <h1 class="section-title">Projects</h1>
+          <p class="section-subtitle">View and manage all collaboration ideas on the platform.</p>
+          <div class="table-wrap">
+            <div class="table-toolbar">
+              <h3>All projects</h3>
+              <input class="search-input" id="projectSearch" type="search" placeholder="Search by title, domain…" />
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Domain</th>
+                  <th>Stage</th>
+                  <th>Owner</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="projectsTableBody"></tbody>
+            </table>
+            <div class="pagination" id="projectsPagination"></div>
+          </div>
+        </section>
+
+        <!-- Rooms -->
+        <section class="admin-section" id="section-rooms">
+          <h1 class="section-title">Rooms</h1>
+          <p class="section-subtitle">Monitor focused collaboration rooms and close them if needed.</p>
+          <div class="table-wrap">
+            <div class="table-toolbar">
+              <h3>All rooms</h3>
+              <input class="search-input" id="roomSearch" type="search" placeholder="Search by title, focus…" />
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Project</th>
+                  <th>Participants</th>
+                  <th>Messages</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="roomsTableBody"></tbody>
+            </table>
+            <div class="pagination" id="roomsPagination"></div>
+          </div>
+        </section>
+
+        <!-- Requests -->
+        <section class="admin-section" id="section-requests">
+          <h1 class="section-title">Requests</h1>
+          <p class="section-subtitle">Connection and project join requests across the platform.</p>
+          <div class="table-wrap" style="margin-bottom:28px;">
+            <div class="table-toolbar"><h3>Connection requests</h3></div>
+            <table>
+              <thead><tr><th>From</th><th>To</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="connReqBody"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap">
+            <div class="table-toolbar"><h3>Project join requests</h3></div>
+            <table>
+              <thead><tr><th>From</th><th>Project</th><th>Motivation</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="projReqBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- Detail Drawer -->
+    <div class="detail-backdrop" id="detailBackdrop"></div>
+    <aside class="detail-drawer" id="detailDrawer">
+      <div class="detail-drawer-inner">
+        <div class="detail-drawer-header">
+          <h2 id="detailDrawerTitle">Details</h2>
+          <button class="notif-close-btn" id="detailDrawerClose" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="detailDrawerBody" class="detail-drawer-body"></div>
+      </div>
+    </aside>
+
+    <!-- Confirm dialog -->
+    <div class="confirm-overlay" id="confirmOverlay">
+      <div class="confirm-card">
+        <h3 id="confirmTitle">Confirm action</h3>
+        <p id="confirmMessage"></p>
+        <div class="confirm-actions">
+          <button class="btn-secondary" id="confirmCancelBtn">Cancel</button>
+          <button class="btn-danger" id="confirmOkBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notice -->
+    <div class="admin-notice" id="adminNotice"></div>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

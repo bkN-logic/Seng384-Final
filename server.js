@@ -263,11 +263,18 @@ async function handleApi(req, res, pathname) {
   if (req.method === "GET" && pathname === "/api/bootstrap") {
     await seedDemoAccounts();
     const db = await readDb();
+    const userId = new URL(req.url, `http://${req.headers.host || "localhost"}`).searchParams.get("userId");
+    const notifications = userId
+      ? (db.notifications || []).filter((n) => n.recipientId === userId)
+      : [];
     json(res, 200, {
       users: db.users.map(getPublicUser),
       projects: db.projects,
       conversations: db.conversations,
       stats: getStats(db),
+      connectionRequests: db.connectionRequests || [],
+      projectRequests: db.projectRequests || [],
+      notifications,
     });
     return;
   }
@@ -560,6 +567,10 @@ async function handleApi(req, res, pathname) {
         throw new Error("Sender is not part of this room");
       }
 
+      if (conversation.closed) {
+        throw new Error("This room is closed. No new messages can be sent.");
+      }
+
       const created = {
         id: createId("m"),
         senderId,
@@ -579,6 +590,315 @@ async function handleApi(req, res, pathname) {
     }
 
     json(res, 201, { message });
+    return;
+  }
+
+  /* ─── Close Room ─── */
+
+  if (req.method === "PATCH" && /^\/api\/conversations\/[^/]+\/close$/.test(pathname)) {
+    const conversationId = pathname.split("/")[3];
+
+    const result = await updateDb((db) => {
+      const conversation = db.conversations.find((c) => c.id === conversationId);
+      if (!conversation) throw new Error("Conversation not found");
+      conversation.closed = true;
+      conversation.closedAt = new Date().toISOString();
+      return conversation;
+    }).catch((error) => { badRequest(res, error.message); return null; });
+
+    if (!result) return;
+    json(res, 200, { ok: true, conversation: result });
+    return;
+  }
+
+  /* ─── Connection Requests ─── */
+
+  if (req.method === "POST" && pathname === "/api/connection-requests") {
+    const body = await parseBody(req);
+    const fromId = cleanText(body.fromId);
+    const toId = cleanText(body.toId);
+
+    if (!fromId || !toId || fromId === toId) {
+      badRequest(res, "fromId and toId are required and must be different");
+      return;
+    }
+
+    const created = await updateDb((db) => {
+      const from = db.users.find((u) => u.id === fromId);
+      const to = db.users.find((u) => u.id === toId);
+
+      if (!from || !to) throw new Error("User not found");
+
+      from.friendIds = Array.isArray(from.friendIds) ? from.friendIds : [];
+      if (from.friendIds.includes(toId)) throw new Error("Already connected");
+
+      db.connectionRequests = Array.isArray(db.connectionRequests) ? db.connectionRequests : [];
+      const existing = db.connectionRequests.find(
+        (r) => r.fromId === fromId && r.toId === toId && r.status === "pending"
+      );
+      if (existing) throw new Error("Request already sent");
+
+      const request = {
+        id: createId("cr"),
+        fromId,
+        toId,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+      db.connectionRequests.push(request);
+
+      db.notifications = Array.isArray(db.notifications) ? db.notifications : [];
+      db.notifications.push({
+        id: createId("notif"),
+        recipientId: toId,
+        type: "connection_request",
+        referenceId: request.id,
+        fromId,
+        fromName: from.name,
+        message: `${from.name} sent you a connection request.`,
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      return request;
+    }).catch((error) => { badRequest(res, error.message); return null; });
+
+    if (!created) return;
+    json(res, 201, { ok: true, request: created });
+    return;
+  }
+
+  if (req.method === "PATCH" && pathname.startsWith("/api/connection-requests/")) {
+    const requestId = pathname.split("/").pop();
+    const body = await parseBody(req);
+    const action = cleanText(body.action); // "accept" | "decline"
+
+    if (!requestId || !action) {
+      badRequest(res, "requestId and action are required");
+      return;
+    }
+
+    const result = await updateDb((db) => {
+      db.connectionRequests = Array.isArray(db.connectionRequests) ? db.connectionRequests : [];
+      const cr = db.connectionRequests.find((r) => r.id === requestId);
+      if (!cr) throw new Error("Request not found");
+      if (cr.status !== "pending") throw new Error("Request already resolved");
+
+      cr.status = action === "accept" ? "accepted" : "declined";
+      cr.resolvedAt = new Date().toISOString();
+
+      const from = db.users.find((u) => u.id === cr.fromId);
+      const to = db.users.find((u) => u.id === cr.toId);
+
+      if (action === "accept" && from && to) {
+        from.friendIds = Array.isArray(from.friendIds) ? from.friendIds : [];
+        to.friendIds = Array.isArray(to.friendIds) ? to.friendIds : [];
+        if (!from.friendIds.includes(cr.toId)) from.friendIds.push(cr.toId);
+        if (!to.friendIds.includes(cr.fromId)) to.friendIds.push(cr.fromId);
+      }
+
+      db.notifications = Array.isArray(db.notifications) ? db.notifications : [];
+      const actionLabel = action === "accept" ? "accepted" : "declined";
+      db.notifications.push({
+        id: createId("notif"),
+        recipientId: cr.fromId,
+        type: "connection_response",
+        referenceId: cr.id,
+        fromId: cr.toId,
+        fromName: to ? to.name : "Someone",
+        action,
+        message: `${to ? to.name : "Someone"} ${actionLabel} your connection request.`,
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      return cr;
+    }).catch((error) => { badRequest(res, error.message); return null; });
+
+    if (!result) return;
+    json(res, 200, { ok: true, request: result });
+    return;
+  }
+
+  /* ─── Project Join Requests ─── */
+
+  if (req.method === "POST" && pathname === "/api/project-requests") {
+    const body = await parseBody(req);
+    const fromId = cleanText(body.fromId);
+    const projectId = cleanText(body.projectId);
+    const motivation = cleanText(body.motivation);
+
+    if (!fromId || !projectId) {
+      badRequest(res, "fromId and projectId are required");
+      return;
+    }
+
+    const created = await updateDb((db) => {
+      const from = db.users.find((u) => u.id === fromId);
+      const project = db.projects.find((p) => p.id === projectId);
+
+      if (!from || !project) throw new Error("User or project not found");
+      if (project.ownerId === fromId) throw new Error("You cannot request to join your own project");
+
+      db.projectRequests = Array.isArray(db.projectRequests) ? db.projectRequests : [];
+      const existing = db.projectRequests.find(
+        (r) => r.fromId === fromId && r.projectId === projectId && r.status === "pending"
+      );
+      if (existing) throw new Error("You already sent a join request for this project");
+
+      const request = {
+        id: createId("pr"),
+        fromId,
+        projectId,
+        ownerId: project.ownerId,
+        motivation: motivation || "",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+      db.projectRequests.push(request);
+
+      const owner = db.users.find((u) => u.id === project.ownerId);
+      db.notifications = Array.isArray(db.notifications) ? db.notifications : [];
+      db.notifications.push({
+        id: createId("notif"),
+        recipientId: project.ownerId,
+        type: "project_request",
+        referenceId: request.id,
+        fromId,
+        fromName: from.name,
+        projectId,
+        projectTitle: project.title,
+        motivation,
+        message: `${from.name} wants to join "${project.title}".`,
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      return request;
+    }).catch((error) => { badRequest(res, error.message); return null; });
+
+    if (!created) return;
+    json(res, 201, { ok: true, request: created });
+    return;
+  }
+
+  if (req.method === "PATCH" && pathname.startsWith("/api/project-requests/")) {
+    const requestId = pathname.split("/").pop();
+    const body = await parseBody(req);
+    const action = cleanText(body.action); // "accept" | "decline"
+
+    if (!requestId || !action) {
+      badRequest(res, "requestId and action are required");
+      return;
+    }
+
+    const result = await updateDb((db) => {
+      db.projectRequests = Array.isArray(db.projectRequests) ? db.projectRequests : [];
+      const pr = db.projectRequests.find((r) => r.id === requestId);
+      if (!pr) throw new Error("Request not found");
+      if (pr.status !== "pending") throw new Error("Request already resolved");
+
+      pr.status = action === "accept" ? "accepted" : "declined";
+      pr.resolvedAt = new Date().toISOString();
+
+      const from = db.users.find((u) => u.id === pr.fromId);
+      const project = db.projects.find((p) => p.id === pr.projectId);
+      const owner = db.users.find((u) => u.id === pr.ownerId);
+
+      db.notifications = Array.isArray(db.notifications) ? db.notifications : [];
+      const actionLabel = action === "accept" ? "accepted" : "declined";
+      db.notifications.push({
+        id: createId("notif"),
+        recipientId: pr.fromId,
+        type: "project_response",
+        referenceId: pr.id,
+        fromId: pr.ownerId,
+        fromName: owner ? owner.name : "Project owner",
+        projectId: pr.projectId,
+        projectTitle: project ? project.title : "Project",
+        action,
+        message: `${owner ? owner.name : "Project owner"} ${actionLabel} your join request for "${project ? project.title : "the project"}".`,
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+
+      return pr;
+    }).catch((error) => { badRequest(res, error.message); return null; });
+
+    if (!result) return;
+    json(res, 200, { ok: true, request: result });
+    return;
+  }
+
+  /* ─── Notifications ─── */
+
+  if (req.method === "PATCH" && pathname === "/api/notifications/read-all") {
+    const body = await parseBody(req);
+    const userId = cleanText(body.userId);
+
+    if (!userId) {
+      badRequest(res, "userId is required");
+      return;
+    }
+
+    await updateDb((db) => {
+      db.notifications = Array.isArray(db.notifications) ? db.notifications : [];
+      db.notifications.filter((n) => n.recipientId === userId).forEach((n) => { n.read = true; });
+    });
+
+    json(res, 200, { ok: true });
+    return;
+  }
+
+  /* ─── Admin Routes ─── */
+
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin123";
+
+  if (req.method === "POST" && pathname === "/api/admin/login") {
+    const body = await parseBody(req);
+    const password = cleanText(body.password);
+    if (!password || password !== ADMIN_PASSWORD) {
+      unauthorized(res, "Invalid admin password");
+      return;
+    }
+    json(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/api/admin/data") {
+    const db = await readDb();
+    json(res, 200, {
+      users: db.users.map(getPublicUser),
+      projects: db.projects,
+      conversations: db.conversations,
+      connectionRequests: db.connectionRequests || [],
+      projectRequests: db.projectRequests || [],
+      notifications: db.notifications || [],
+      stats: getStats(db),
+    });
+    return;
+  }
+
+  if (req.method === "DELETE" && pathname.startsWith("/api/admin/users/")) {
+    const userId = pathname.split("/").pop();
+    await updateDb((db) => {
+      const idx = db.users.findIndex((u) => u.id === userId);
+      if (idx === -1) throw new Error("User not found");
+      db.users.splice(idx, 1);
+      db.accounts = (db.accounts || []).filter((a) => a.userId !== userId);
+    }).catch((error) => { badRequest(res, error.message); return null; });
+    json(res, 200, { ok: true });
+    return;
+  }
+
+  if (req.method === "DELETE" && pathname.startsWith("/api/admin/projects/")) {
+    const projectId = pathname.split("/").pop();
+    await updateDb((db) => {
+      const idx = db.projects.findIndex((p) => p.id === projectId);
+      if (idx === -1) throw new Error("Project not found");
+      db.projects.splice(idx, 1);
+    }).catch((error) => { badRequest(res, error.message); return null; });
+    json(res, 200, { ok: true });
     return;
   }
 
