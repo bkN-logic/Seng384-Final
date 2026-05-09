@@ -1,6 +1,22 @@
 {
   "users": [
     {
+      "id": "u_moyqpz3o_0uqdcx",
+      "name": "Boran Kılınç",
+      "role": "Student",
+      "specialty": "Newly joined collaboration member",
+      "city": "Remote",
+      "status": "New member exploring collaboration opportunities",
+      "bio": "Boran Kılınç joined Project Bridge as Student to discover meaningful partnerships and help promising ideas move forward.",
+      "interests": [
+        "co-creation",
+        "Student",
+        "new opportunities"
+      ],
+      "availability": "Open to an introductory conversation",
+      "friendIds": []
+    },
+    {
       "id": "u1",
       "name": "Dr. Selin Kaya",
       "role": "Doctor",
@@ -34,7 +50,8 @@
       ],
       "availability": "Available for one new research sprint",
       "friendIds": [
-        "u4"
+        "u4",
+        "u5"
       ]
     },
     {
@@ -90,11 +107,23 @@
       ],
       "availability": "Open for design review partnerships",
       "friendIds": [
-        "u1"
+        "u1",
+        "u2"
       ]
     }
   ],
   "accounts": [
+    {
+      "id": "acc_moyqpz3o_trtk1t",
+      "userId": "u_moyqpz3o_0uqdcx",
+      "firstName": "Boran",
+      "lastName": "Kılınç",
+      "email": "c2228029@student.cankaya.edu.tr",
+      "phone": "+905435959300",
+      "profession": "Student",
+      "passwordHash": "79c360db3859e28eae4b805db8039454:8a0da609cf6ffd73074e652d79b2cd099e0b6ab60ae01b1ee97ba32f5b74cc47200a6d035ae211ee1e107c2cb2beefadd0838dbd3bde9dc86850fb0f16cd6b95",
+      "createdAt": "2026-05-09T19:31:58.119Z"
+    },
     {
       "id": "acc_mn94awjt_bauhck",
       "userId": "u1",
@@ -148,6 +177,21 @@
   ],
   "projects": [
     {
+      "id": "p_movctiqf_axrin9",
+      "title": "Help for presentation",
+      "domain": "Presentation care",
+      "summary": "Looking a author for our presentation",
+      "collaborationGoal": "Experienced",
+      "ownerId": "u1",
+      "stage": "Launch Prep",
+      "lookingFor": "Project Manager",
+      "tags": [
+        "AI",
+        "Presentation"
+      ],
+      "createdAt": "2026-05-07T10:39:30.327Z"
+    },
+    {
       "id": "p1",
       "title": "Smart Rehab Glove",
       "domain": "Rehabilitation Tech",
@@ -198,6 +242,24 @@
   ],
   "conversations": [
     {
+      "id": "c_moyncynw_zbm3va",
+      "title": "Help for presentation Focus Room",
+      "projectId": "p_movctiqf_axrin9",
+      "participantIds": [
+        "u1",
+        "u2"
+      ],
+      "focus": "Experienced",
+      "messages": [
+        {
+          "id": "m_moyncynw_wrh8xq",
+          "senderId": "u1",
+          "body": "Started a focused room for \"Help for presentation\" to plan the next collaboration step.",
+          "createdAt": "2026-05-09T17:57:52.124Z"
+        }
+      ]
+    },
+    {
       "id": "c1",
       "title": "Smart Rehab Glove Pilot Room",
       "projectId": "p1",
@@ -230,6 +292,12 @@
           "senderId": "u1",
           "body": "dnwkqndknwd",
           "createdAt": "2026-05-04T08:07:07.442Z"
+        },
+        {
+          "id": "m_mov4lg0d_fet7nm",
+          "senderId": "u1",
+          "body": "hallo",
+          "createdAt": "2026-05-07T06:49:16.621Z"
         }
       ]
     },
@@ -257,6 +325,49 @@
           "createdAt": "2026-03-24T13:18:00.000Z"
         }
       ]
+    }
+  ],
+  "connectionRequests": [],
+  "projectRequests": [
+    {
+      "id": "pr_moyqqmqc_awaeqm",
+      "fromId": "u_moyqpz3o_0uqdcx",
+      "projectId": "p_movctiqf_axrin9",
+      "ownerId": "u1",
+      "motivation": "I will be really glad to collobrate that project",
+      "status": "accepted",
+      "createdAt": "2026-05-09T19:32:28.692Z",
+      "resolvedAt": "2026-05-09T19:33:08.404Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif_moyqqmqc_1hn7j2",
+      "recipientId": "u1",
+      "type": "project_request",
+      "referenceId": "pr_moyqqmqc_awaeqm",
+      "fromId": "u_moyqpz3o_0uqdcx",
+      "fromName": "Boran Kılınç",
+      "projectId": "p_movctiqf_axrin9",
+      "projectTitle": "Help for presentation",
+      "motivation": "I will be really glad to collobrate that project",
+      "message": "Boran Kılınç wants to join \"Help for presentation\".",
+      "read": true,
+      "createdAt": "2026-05-09T19:32:28.692Z"
+    },
+    {
+      "id": "notif_moyqrhdg_vhkvpd",
+      "recipientId": "u_moyqpz3o_0uqdcx",
+      "type": "project_response",
+      "referenceId": "pr_moyqqmqc_awaeqm",
+      "fromId": "u1",
+      "fromName": "Dr. Selin Kaya",
+      "projectId": "p_movctiqf_axrin9",
+      "projectTitle": "Help for presentation",
+      "action": "accept",
+      "message": "Dr. Selin Kaya accepted your join request for \"Help for presentation\".",
+      "read": false,
+      "createdAt": "2026-05-09T19:33:08.404Z"
     }
   ]
 }
